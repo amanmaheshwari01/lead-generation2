@@ -79,7 +79,7 @@ export default function LeadsTable() {
                   <th className="p-4 font-semibold">Date</th>
                   <th className="p-4 font-semibold">Customer Name</th>
                   <th className="p-4 font-semibold">Phone</th>
-                  <th className="p-4 font-semibold">Location</th>
+                  <th className="p-4 font-semibold">Area</th>
                   <th className="p-4 font-semibold">Interest</th>
                   <th className="p-4 font-semibold">Budget</th>
                   <th className="p-4 font-semibold">Status</th>

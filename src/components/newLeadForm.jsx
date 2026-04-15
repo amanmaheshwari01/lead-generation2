@@ -14,7 +14,9 @@ export default function NewLeadForm({ redirectPath }) {
     budget: "",
     productInterest: "",
     area: "",
-    gpsLocation: "",
+    district: "",
+    state: "",
+    gpsCoordinates: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -101,19 +103,21 @@ export default function NewLeadForm({ redirectPath }) {
           const data = await res.json();
 
           const addr = data.address || {};
-          // Build a readable area string
-          const parts = [
-            addr.neighbourhood || addr.suburb || "",
-            addr.city || addr.town || addr.village || "",
-            addr.state || "",
-          ].filter(Boolean);
 
-          const areaString = parts.join(", ") || data.display_name || gpsString;
+          // Extract individual location fields
+          const area = addr.neighbourhood || addr.suburb || addr.village || addr.town || "";
+          const district = addr.city_district || addr.county || addr.city || addr.town || "";
+          const state = addr.state || "";
+
+          // Area shown to user: just the neighbourhood/suburb
+          const areaString = area || district || data.display_name || gpsString;
 
           setFormData((prev) => ({
             ...prev,
             area: areaString,
-            gpsLocation: gpsString,
+            district,
+            state,
+            gpsCoordinates: gpsString,
           }));
 
           // Clear area error if it was set
@@ -129,7 +133,7 @@ export default function NewLeadForm({ redirectPath }) {
           setFormData((prev) => ({
             ...prev,
             area: gpsString,
-            gpsLocation: gpsString,
+            gpsCoordinates: gpsString,
           }));
           toast.info("Got coordinates but couldn't resolve address.");
         } finally {
@@ -266,12 +270,6 @@ export default function NewLeadForm({ redirectPath }) {
               </button>
             </div>
             {errors.area && touched.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
-            {formData.gpsLocation && (
-              <p className="text-xs text-theme-slate/70 mt-1 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-                GPS: {formData.gpsLocation}
-              </p>
-            )}
           </div>
 
           {/* Budget Field */}

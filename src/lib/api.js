@@ -8,7 +8,7 @@ import axios from "axios";
 // are configured once here.
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: "/api",
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
