@@ -12,12 +12,27 @@ export default function NewLeadForm({ redirectPath }) {
     customerName: "",
     phoneNumber: "",
     budget: "",
-    productInterest: "",
+    productInterest: [],
     area: "",
+    city: "",
     district: "",
     state: "",
     gpsCoordinates: "",
   });
+
+  const productOptions = [
+    "Cricket Kit",
+    "Running Shoes",
+    "Badminton Racket",
+    "Football",
+    "Basketball",
+    "Gym Equipment",
+    "Sports Wear",
+    "Yoga Mat",
+    "Other",
+  ];
+
+  const [otherProductName, setOtherProductName] = useState("");
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -31,22 +46,30 @@ export default function NewLeadForm({ redirectPath }) {
         if (value.trim().length < 2) return "Name must be at least 2 characters long.";
         return "";
       case "phoneNumber": {
-        const phoneRegex = /^[0-9+\-\s()]{10,}$/;
-        if (!phoneRegex.test(value)) return "Please enter a valid phone number (min 10 digits).";
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(value)) return "Phone number must be exactly 10 digits.";
         return "";
       }
       case "budget":
-        if (!value || Number(value) <= 0) return "Please enter a valid budget amount.";
         return "";
       case "productInterest":
-        if (value.trim() === "") return "Please specify what they are interested in.";
         return "";
       case "area":
-        if (value.trim() === "") return "Please enter an area.";
         return "";
       default:
         return "";
     }
+  };
+
+  // Checkbox toggle logic
+  const handleProductToggle = (product) => {
+    setFormData((prev) => {
+      const current = prev.productInterest;
+      const updated = current.includes(product)
+        ? current.filter((p) => p !== product)
+        : [...current, product];
+      return { ...prev, productInterest: updated };
+    });
   };
 
   // Blur handler — validates the individual field
@@ -66,7 +89,7 @@ export default function NewLeadForm({ redirectPath }) {
 
   // Full-form validation (used on submit)
   const validateForm = () => {
-    const fields = ["customerName", "phoneNumber", "budget", "productInterest", "area"];
+    const fields = ["customerName", "phoneNumber"];
     let newErrors = {};
     fields.forEach((field) => {
       const msg = validateField(field, formData[field]);
@@ -106,15 +129,17 @@ export default function NewLeadForm({ redirectPath }) {
 
           // Extract individual location fields
           const area = addr.neighbourhood || addr.suburb || addr.village || addr.town || "";
-          const district = addr.city_district || addr.county || addr.city || addr.town || "";
+          const city = addr.city || addr.town || addr.village || "";
+          const district = addr.city_district || addr.county || "";
           const state = addr.state || "";
 
           // Area shown to user: just the neighbourhood/suburb
-          const areaString = area || district || data.display_name || gpsString;
+          const areaString = area || city || district || data.display_name || gpsString;
 
           setFormData((prev) => ({
             ...prev,
             area: areaString,
+            city,
             district,
             state,
             gpsCoordinates: gpsString,
@@ -167,7 +192,23 @@ export default function NewLeadForm({ redirectPath }) {
     setIsSubmitting(true);
 
     try {
-      const { data } = await leadsAPI.createLead(formData);
+      // Create a copy of the payload to modify productInterest if "Other" is selected
+      let finalProductInterest = [...formData.productInterest];
+      if (finalProductInterest.includes("Other") && otherProductName.trim()) {
+        // Replace "Other" with the actual custom product name, or just add it
+        finalProductInterest = finalProductInterest.map(p => p === "Other" ? otherProductName.trim() : p);
+      } else if (finalProductInterest.includes("Other")) {
+        // If "Other" is checked but no text entered, maybe remove it or keep it? 
+        // Let's remove it if it's empty to keep data clean
+        finalProductInterest = finalProductInterest.filter(p => p !== "Other");
+      }
+
+      const submissionData = {
+        ...formData,
+        productInterest: finalProductInterest
+      };
+
+      const { data } = await leadsAPI.createLead(submissionData);
 
       if (!data.success) {
         throw new Error(data.message || "Something went wrong saving the lead.");
@@ -225,6 +266,7 @@ export default function NewLeadForm({ redirectPath }) {
             <label className="block text-sm font-medium text-theme-slate mb-1">Phone Number *</label>
             <input
               type="tel"
+              maxLength={10}
               placeholder="(555) 123-4567"
               value={formData.phoneNumber}
               onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
@@ -236,7 +278,7 @@ export default function NewLeadForm({ redirectPath }) {
 
           {/* Area Field (with GPS button) */}
           <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Area *</label>
+            <label className="block text-sm font-medium text-theme-slate mb-1">Area</label>
             <div className="relative">
               <input
                 type="text"
@@ -272,9 +314,43 @@ export default function NewLeadForm({ redirectPath }) {
             {errors.area && touched.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
           </div>
 
+          {/* City, District, State Row */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-theme-slate mb-1">City</label>
+              <input
+                type="text"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className={inputClass("city")}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-theme-slate mb-1">District</label>
+              <input
+                type="text"
+                placeholder="District"
+                value={formData.district}
+                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                className={inputClass("district")}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-theme-slate mb-1">State</label>
+              <input
+                type="text"
+                placeholder="State"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                className={inputClass("state")}
+              />
+            </div>
+          </div>
+
           {/* Budget Field */}
           <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Estimated Budget (Rs.) *</label>
+            <label className="block text-sm font-medium text-theme-slate mb-1">Estimated Budget (Rs.)</label>
             <input
               type="number"
               placeholder="500"
@@ -286,18 +362,57 @@ export default function NewLeadForm({ redirectPath }) {
             {errors.budget && touched.budget && <p className="text-red-500 text-xs mt-1">{errors.budget}</p>}
           </div>
 
-          {/* Product Interest Field */}
+          {/* Product Interest Checkboxes */}
           <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Product Interest *</label>
-            <input
-              type="text"
-              placeholder="e.g. Winter Jackets, Running Shoes"
-              value={formData.productInterest}
-              onChange={(e) => setFormData({ ...formData, productInterest: e.target.value })}
-              onBlur={() => handleBlur("productInterest")}
-              className={inputClass("productInterest")}
-            />
-            {errors.productInterest && touched.productInterest && <p className="text-red-500 text-xs mt-1">{errors.productInterest}</p>}
+            <div className="flex items-center gap-2 mb-3">
+              <label className="block text-sm font-medium text-theme-slate">Product Interest</label>
+              {formData.productInterest.length > 0 && (
+                <span className="flex items-center justify-center bg-theme-accent text-white text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full animate-in zoom-in duration-300">
+                  {formData.productInterest.length}
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {productOptions.map((product) => {
+                const isChecked = formData.productInterest.includes(product);
+                return (
+                  <label
+                    key={product}
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                      isChecked
+                        ? "border-theme-accent bg-theme-accent/5 ring-1 ring-theme-accent"
+                        : "border-theme-slate/20 hover:border-theme-slate/40"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-theme-accent rounded focus:ring-theme-accent cursor-pointer"
+                      checked={isChecked}
+                      onChange={() => handleProductToggle(product)}
+                    />
+                    <span className={`text-sm ${isChecked ? "text-theme-navy font-semibold" : "text-theme-slate"}`}>
+                      {product}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Custom Product Input (shown when 'Other' is checked) */}
+            {formData.productInterest.includes("Other") && (
+              <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
+                <label className="block text-sm font-medium text-theme-slate mb-1">Specify Product</label>
+                <input
+                  type="text"
+                  placeholder="Enter product name..."
+                  value={otherProductName}
+                  onChange={(e) => setOtherProductName(e.target.value)}
+                  className={inputClass("otherProduct")}
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
