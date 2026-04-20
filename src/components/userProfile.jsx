@@ -2,35 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { User, Mail, Shield, Store, Pencil, Save, X, Loader2 } from "lucide-react";
+import { User, Mail, Shield, Store, Pencil, Save, X, Loader2, TrendingUp, LogOut } from "lucide-react";
 import { userAPI } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
-export default function UserProfile() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function UserProfile({ initialProfile }) {
+  const router = useRouter();
+  const [user, setUser] = useState(initialProfile || null);
+  const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "" });
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const { data } = await userAPI.getProfile();
-      if (data.success) {
-        setUser(data.user);
-        setForm({ name: data.user.name, email: data.user.email });
-      } else {
-        toast.error(data.message || "Failed to load profile");
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Could not connect to server");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [form, setForm] = useState({ 
+    name: initialProfile?.name || "", 
+    email: initialProfile?.email || "" 
+  });
 
   const handleSave = async () => {
     setSaving(true);
@@ -55,6 +40,13 @@ export default function UserProfile() {
     setEditing(false);
   };
 
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("token");
+      router.push("/");
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return "?";
     return name
@@ -67,9 +59,9 @@ export default function UserProfile() {
 
   const getRoleBadge = (role) => {
     const styles = {
-      "Super Admin": { bg: "bg-gradient-to-r from-amber-500 to-orange-500", text: "text-white" },
-      "Shop Admin": { bg: "bg-gradient-to-r from-violet-500 to-purple-600", text: "text-white" },
-      Employee: { bg: "bg-gradient-to-r from-cyan-500 to-blue-500", text: "text-white" },
+      "Super Admin": { bg: "bg-theme-navy", text: "text-white" },
+      "Shop Admin": { bg: "bg-theme-slate", text: "text-white" },
+      Employee: { bg: "bg-theme-accent", text: "text-white" },
     };
     const s = styles[role] || styles.Employee;
     return (
@@ -93,147 +85,134 @@ export default function UserProfile() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full min-h-[60vh]">
-        <p className="text-red-400 text-lg">Failed to load profile data.</p>
+        <p className="text-theme-error text-lg">Failed to load profile data.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-3xl mx-auto animate-fadeIn">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-theme-navy tracking-tight">My Profile</h1>
-        <p className="text-theme-slate mt-1">Manage your account information</p>
-      </div>
-
+    <div className="p-4 md:p-8 max-w-3xl mx-auto animate-fadeIn">
       {/* Profile Card */}
-      <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-        {/* Gradient Banner */}
-        <div className="h-36 bg-gradient-to-br from-theme-accent via-indigo-500 to-purple-600 relative">
-          <div className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
-            }}
-          />
-        </div>
-
-        {/* Content */}
-        <div className="bg-white px-6 md:px-10 pb-8 pt-0 relative">
-          {/* Avatar */}
-          <div className="flex items-end gap-5 -mt-14 mb-6">
-            <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-theme-accent to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl ring-4 ring-white shrink-0 select-none">
+      <div className="glass-panel rounded-3xl animate-fadeIn">
+        <div className="p-6 md:p-8 space-y-6">
+          
+          {/* Top Identity Section */}
+          <div className="flex items-center gap-5">
+            <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-theme-accent to-theme-navy flex items-center justify-center text-white text-2xl font-bold shadow-lg">
               {getInitials(user.name)}
             </div>
-            <div className="pb-1 flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-2xl font-bold text-theme-navy truncate">{user.name}</h2>
-                {getRoleBadge(user.role)}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-theme-navy truncate tracking-tight">{user.name}</h2>
+                <div className="hidden sm:block">{getRoleBadge(user.role)}</div>
               </div>
-              <p className="text-theme-slate text-sm mt-1 truncate">{user.email}</p>
+              <p className="text-theme-slate/70 text-sm font-medium">{user.email}</p>
             </div>
-          </div>
-
-          {/* Divider */}
-          <hr className="border-gray-100 mb-6" />
-
-          {/* Info Fields */}
-          <div className="space-y-5">
-            {/* Name */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-xs font-semibold text-theme-slate uppercase tracking-wider mb-2">
-                <User className="w-3.5 h-3.5" /> Full Name
-              </label>
-              {editing ? (
-                <input
-                  id="profile-name-input"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-theme-accent/30 focus:border-theme-accent focus:outline-none text-theme-navy font-medium transition-colors bg-blue-50/50"
-                />
-              ) : (
-                <p className="px-4 py-3 rounded-xl bg-gray-50 text-theme-navy font-medium border-2 border-transparent">
-                  {user.name}
-                </p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-xs font-semibold text-theme-slate uppercase tracking-wider mb-2">
-                <Mail className="w-3.5 h-3.5" /> Email Address
-              </label>
-              {editing ? (
-                <input
-                  id="profile-email-input"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-theme-accent/30 focus:border-theme-accent focus:outline-none text-theme-navy font-medium transition-colors bg-blue-50/50"
-                />
-              ) : (
-                <p className="px-4 py-3 rounded-xl bg-gray-50 text-theme-navy font-medium border-2 border-transparent">
-                  {user.email}
-                </p>
-              )}
-            </div>
-
-            {/* Role (read-only) */}
-            <div>
-              <label className="flex items-center gap-2 text-xs font-semibold text-theme-slate uppercase tracking-wider mb-2">
-                <Shield className="w-3.5 h-3.5" /> Role
-              </label>
-              <p className="px-4 py-3 rounded-xl bg-gray-50 text-theme-navy font-medium border-2 border-transparent">
-                {user.role}
-              </p>
-            </div>
-
-            {/* Shop (read-only) */}
-            {user.shop && (
-              <div>
-                <label className="flex items-center gap-2 text-xs font-semibold text-theme-slate uppercase tracking-wider mb-2">
-                  <Store className="w-3.5 h-3.5" /> Shop
-                </label>
-                <p className="px-4 py-3 rounded-xl bg-gray-50 text-theme-navy font-medium border-2 border-transparent">
-                  {user.shop}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="mt-8 flex items-center gap-3">
-            {editing ? (
-              <>
-                <button
-                  id="profile-save-btn"
-                  onClick={handleSave}
-                  disabled={saving || !form.name.trim() || !form.email.trim()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-theme-accent to-indigo-600 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-                <button
-                  id="profile-cancel-btn"
-                  onClick={handleCancel}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-theme-slate rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </>
-            ) : (
+            {!editing && (
               <button
-                id="profile-edit-btn"
                 onClick={() => setEditing(true)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-theme-accent to-indigo-600 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-theme-navy/5 text-theme-navy hover:bg-theme-navy/10 rounded-xl transition-all font-semibold text-xs cursor-pointer"
               >
-                <Pencil className="w-4 h-4" />
+                <Pencil className="w-3 h-3" />
                 Edit Profile
               </button>
             )}
           </div>
+
+          <div className="sm:hidden">{getRoleBadge(user.role)}</div>
+
+          <hr className="border-theme-slate/5" />
+
+          {/* User Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <div>
+              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Full Legal Name</p>
+              {editing ? (
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-theme-accent/20 focus:border-theme-accent font-semibold text-theme-navy outline-none transition-all shadow-sm"
+                />
+              ) : (
+                <p className="text-sm font-semibold text-theme-navy">{user.name}</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Registered Email</p>
+              {editing ? (
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-theme-accent/20 focus:border-theme-accent font-semibold text-theme-navy outline-none transition-all shadow-sm"
+                />
+              ) : (
+                <p className="text-sm font-semibold text-theme-navy">{user.email}</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Assigned Shop</p>
+              <p className="text-sm font-semibold text-theme-navy">{user.shop || "Main Headquarters"}</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Member Since</p>
+              <p className="text-sm font-semibold text-theme-navy">
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB", { day: 'numeric', month: 'long', year: 'numeric' }) : "April 2024"}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Account Status</p>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-theme-accent opacity-50" />
+                <p className="text-sm font-semibold text-theme-navy">Verified Active</p>
+              </div>
+            </div>
+          </div>
+
+          {editing ? (
+            <div className="flex items-center gap-4 pt-4">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-3 bg-theme-accent text-white rounded-xl font-black text-xs shadow-lg shadow-theme-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? "UPDATING..." : "SAVE CHANGES"}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="flex-1 py-3 bg-theme-slate/10 text-theme-slate rounded-xl font-black text-xs hover:bg-theme-slate/20 transition-all cursor-pointer"
+              >
+                CANCEL
+              </button>
+            </div>
+          ) : (
+            <div className="pt-6 border-t border-theme-slate/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-theme-accent/5 text-theme-accent flex items-center justify-center border border-theme-accent/10">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-widest">Performance Stat</p>
+                  <p className="text-theme-navy font-bold text-lg leading-tight">
+                    {user.leadCount || 0} <span className="text-theme-slate text-[10px] font-semibold">Leads Saved</span>
+                  </p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleLogout}
+                className="md:hidden flex items-center justify-center gap-2 px-6 py-2.5 bg-theme-error/10 text-theme-error hover:bg-theme-error hover:text-white rounded-xl font-bold text-xs transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                SIGN OUT
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

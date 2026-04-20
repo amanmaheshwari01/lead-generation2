@@ -20,6 +20,7 @@ export default function Home() {
       if (!data.success) throw new Error(data.message || "Login failed");
 
       localStorage.setItem("token", data.token);
+      document.cookie = `token=${data.token}; path=/; max-age=7200; Secure; SameSite=Strict`;
 
       if (data.role === "Employee") {
         router.push("/employee/dashboard");
@@ -34,39 +35,56 @@ export default function Home() {
   };
   return (
     <>
-    <div className="flex h-screen items-center justify-center bg-theme-light">
-      <form onSubmit={handleLogin} className="w-96 p-8 bg-theme-navy rounded-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Shop Login</h2>
-        
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 mb-4 border rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required 
-          pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
-          title="Please enter a valid email address (e.g., name@shop.com)"
-        />
-        <div className="relative mb-6">
-          <input
-            type={type?"text":"password"}
-            placeholder="Password"
-            className=" w-full p-2 border rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button onClick={(e)=>{
-            e.preventDefault();
-            setType(!type);
-          }} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer">
-            {type?<EyeIcon />:<EyeOffIcon />}
-          </button>
+    <div className="flex xl:h-screen min-h-[100dvh] items-center justify-center p-4">
+      <form onSubmit={handleLogin} className="w-96 p-8 glass-panel rounded-3xl animate-fadeIn">
+        <div className="mb-8 text-center">
+          <div className="w-14 h-14 bg-gradient-to-br from-theme-accent to-theme-navy rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+            <div className="w-6 h-6 border-[3px] border-white rounded" />
+          </div>
+          <h2 className="text-3xl font-bold text-theme-navy tracking-tight">Shop Portal</h2>
+          <p className="text-theme-slate/80 text-sm mt-1 font-medium">Log in to manage your pipeline</p>
         </div>
-        {error && <p className="text-theme-error mb-4 text-sm">{error}</p>}
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded cursor-pointer">
-          Login
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold text-theme-slate uppercase tracking-widest mb-1.5 ml-1">Email</label>
+            <input
+              type="email"
+              placeholder="name@shop.com"
+              className="w-full px-4 py-2.5 border border-theme-slate/20 rounded-lg focus:border-theme-navy focus:ring-1 focus:ring-theme-navy outline-none text-theme-navy text-sm font-medium transition-all"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required 
+              pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+              title="Please enter a valid email address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-theme-slate uppercase tracking-widest mb-1.5 ml-1">Password</label>
+            <div className="relative">
+              <input
+                type={type?"text":"password"}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 border border-theme-slate/20 rounded-lg focus:border-theme-navy focus:ring-1 focus:ring-theme-navy outline-none text-theme-navy text-sm font-medium transition-all"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button onClick={(e)=>{
+                e.preventDefault();
+                setType(!type);
+              }} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-slate hover:text-theme-navy transition-colors cursor-pointer">
+                {type ? <EyeIcon size={18} /> : <EyeOffIcon size={18} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="text-theme-error mt-4 text-xs font-medium bg-theme-error/5 p-2 rounded border border-theme-error/10">{error}</p>}
+        
+        <button type="submit" className="w-full mt-8 bg-theme-navy text-white py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-theme-navy/90 hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer">
+          Sign In
         </button>
       </form>
     </div>

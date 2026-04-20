@@ -1,11 +1,65 @@
 "use client";
 
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { leadsAPI } from "@/lib/api";
+import { leadsAPI, userAPI } from "@/lib/api";
+import { 
+  User, 
+  Phone, 
+  MapPin, 
+  Map, 
+  Globe, 
+  Wallet, 
+  Package, 
+  CheckCircle2, 
+  AlertCircle,
+  Hash,
+  Activity,
+  ChevronRight
+} from "lucide-react";
      
-export default function NewLeadForm({ redirectPath }) {
+const SectionHeader = ({ icon: Icon, title, subtitle }) => (
+  <div className="flex items-center gap-3 mb-6 pb-2 border-b border-theme-slate/10">
+    <div className="p-2 bg-theme-accent/10 rounded-lg text-theme-accent">
+      <Icon size={20} />
+    </div>
+    <div>
+      <h2 className="text-lg font-semibold text-theme-navy leading-tight">{title}</h2>
+      {subtitle && <p className="text-[11px] text-theme-slate/70">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const InputWrapper = ({ label, fieldName, icon: Icon, touched, errors, formData, children }) => (
+  <div className="space-y-1.5 flex-1">
+    <div className="flex justify-between items-center">
+      <label className="block text-[10px] font-semibold text-theme-slate/60 uppercase tracking-widest">{label}</label>
+      {touched[fieldName] && (
+        <span className="animate-in zoom-in duration-300">
+          {errors[fieldName] ? (
+            <AlertCircle size={14} className="text-theme-error" />
+          ) : formData[fieldName] ? (
+            <CheckCircle2 size={14} className="text-green-500" />
+          ) : null}
+        </span>
+      )}
+    </div>
+    <div className="relative group">
+      <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${
+        errors[fieldName] && touched[fieldName] ? "text-theme-error" : "text-theme-slate/50 group-focus-within:text-theme-accent"
+      }`}>
+        <Icon size={18} />
+      </div>
+      {children}
+    </div>
+    {errors[fieldName] && touched[fieldName] && (
+      <p className="text-theme-error text-[10px] font-medium animate-in slide-in-from-top-1">{errors[fieldName]}</p>
+    )}
+  </div>
+);
+     
+export default function NewLeadForm({ redirectPath, initialProducts = [] }) {
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -20,24 +74,24 @@ export default function NewLeadForm({ redirectPath }) {
     gpsCoordinates: "",
   });
 
-  const productOptions = [
-    "Cricket Kit",
-    "Running Shoes",
-    "Badminton Racket",
-    "Football",
-    "Basketball",
-    "Gym Equipment",
-    "Sports Wear",
-    "Yoga Mat",
-    "Other",
-  ];
-
+  // Automatically parse initial products passed down from Server Route
+  // Map logic safely handles if they are string arrays or object arrays { productName: "Bat" }
+  const uniqueProductNames = [...new Set(initialProducts.map(p => typeof p === 'string' ? p : p.productName))].filter(Boolean);
+  const [productOptions] = useState(uniqueProductNames.length > 0 ? [...uniqueProductNames, "Other"] : ["Other"]);
+  
   const [otherProductName, setOtherProductName] = useState("");
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
+  // Phone number formatter (Indian format: XXXXX XXXXX)
+  const formatPhoneNumber = (value) => {
+    const cleaned = value.replace(/\D/g, "");
+    if (cleaned.length <= 5) return cleaned;
+    return `${cleaned.slice(0, 5)} ${cleaned.slice(5, 10)}`;
+  };
 
   // Per-field validation rules
   const validateField = (fieldName, value) => {
@@ -46,8 +100,9 @@ export default function NewLeadForm({ redirectPath }) {
         if (value.trim().length < 2) return "Name must be at least 2 characters long.";
         return "";
       case "phoneNumber": {
+        const cleaned = value.replace(/\D/g, "");
         const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(value)) return "Phone number must be exactly 10 digits.";
+        if (!phoneRegex.test(cleaned)) return "Phone number must be exactly 10 digits.";
         return "";
       }
       case "budget":
@@ -195,16 +250,14 @@ export default function NewLeadForm({ redirectPath }) {
       // Create a copy of the payload to modify productInterest if "Other" is selected
       let finalProductInterest = [...formData.productInterest];
       if (finalProductInterest.includes("Other") && otherProductName.trim()) {
-        // Replace "Other" with the actual custom product name, or just add it
         finalProductInterest = finalProductInterest.map(p => p === "Other" ? otherProductName.trim() : p);
       } else if (finalProductInterest.includes("Other")) {
-        // If "Other" is checked but no text entered, maybe remove it or keep it? 
-        // Let's remove it if it's empty to keep data clean
         finalProductInterest = finalProductInterest.filter(p => p !== "Other");
       }
 
       const submissionData = {
         ...formData,
+        phoneNumber: formData.phoneNumber.replace(/\s/g, ""), // Remove spaces for DB
         productInterest: finalProductInterest
       };
 
@@ -226,209 +279,279 @@ export default function NewLeadForm({ redirectPath }) {
   };
 
   // Helper: input class based on error state
-  const inputClass = (fieldName) =>
-    `w-full p-3 border rounded-lg outline-none transition-colors text-theme-navy ${
-      errors[fieldName] && touched[fieldName]
-        ? "border-red-500 bg-red-50"
-        : "border-theme-slate/30 focus:border-theme-accent focus:ring-1 focus:ring-theme-accent"
+  const inputClass = (fieldName) => {
+    const hasError = errors[fieldName] && touched[fieldName];
+    const isSuccess = !errors[fieldName] && touched[fieldName] && formData[fieldName];
+
+    return `w-full p-2.5 pl-10 border rounded-lg outline-none transition-all text-theme-navy text-sm ${
+      hasError
+        ? "border-theme-error bg-theme-error/5 ring-1 ring-theme-error/10"
+        : isSuccess
+        ? "border-green-500/50 bg-green-50/20"
+        : "border-theme-slate/20 focus:border-theme-accent focus:ring-1 focus:ring-theme-accent bg-white shadow-sm"
     }`;
+  };
+
+
 
   return (
-    <div className="flex flex-col max-w-4xl mx-auto">
-      
-      <header className="mb-8 flex flex-col items-center">
-        <h1 className="text-3xl font-bold text-theme-navy">Log a Walk-In</h1>
-        <p className="text-theme-slate mt-1">Quickly capture customer details to build your pipeline.</p>
+    <div className="flex flex-col max-w-4xl mx-auto px-4 py-6">
+      <header className="mb-12 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-theme-accent/5 text-theme-accent text-[10px] font-bold mb-4 uppercase tracking-[0.2em]">
+          <Activity size={12} /> New Walk-In
+        </div>
+        <h1 className="text-3xl font-bold text-theme-navy tracking-tight">Log New Walk-In</h1>
+        <p className="text-theme-slate/80 mt-2 text-sm max-w-sm mx-auto">Enter walk-in details to save them for future festival offers and WhatsApp updates.</p>
       </header>
 
-      <div className="bg-theme-light p-8 rounded-xl shadow-sm border border-theme-slate/20 max-w-5xl">
-        <h2 className="text-xl font-bold text-theme-navy mb-6 border-b border-theme-slate/20 pb-4">
-          Customer Details
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Customer Name Field */}
-          <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Customer Name *</label>
-            <input
-              type="text"
-              placeholder="Jane Doe"
-              value={formData.customerName}
-              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-              onBlur={() => handleBlur("customerName")}
-              className={inputClass("customerName")}
-            />
-            {errors.customerName && touched.customerName && <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>}
-          </div>
-
-          {/* Phone Number Field */}
-          <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Phone Number *</label>
-            <input
-              type="tel"
-              maxLength={10}
-              placeholder="(555) 123-4567"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-              onBlur={() => handleBlur("phoneNumber")}
-              className={inputClass("phoneNumber")}
-            />
-            {errors.phoneNumber && touched.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
-          </div>
-
-          {/* Area Field (with GPS button) */}
-          <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Area</label>
-            <div className="relative">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Section 1: Customer Profile */}
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl animate-fadeIn">
+          <SectionHeader 
+            icon={User} 
+            title="Walk-In Details" 
+            subtitle="Basic contact info for WhatsApp messaging"
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<InputWrapper label="Customer Name *" fieldName="customerName" icon={User} touched={touched} errors={errors} formData={formData}>
               <input
                 type="text"
-                placeholder="e.g. Koramangala, Bangalore"
-                value={formData.area}
-                onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                onBlur={() => handleBlur("area")}
-                className={`${inputClass("area")} pr-12`}
+                placeholder="Jane Doe"
+                value={formData.customerName}
+                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                onBlur={() => handleBlur("customerName")}
+                className={inputClass("customerName")}
               />
-              {/* GPS Map Pin Button */}
-              <button
-                type="button"
-                onClick={handleGetGPSLocation}
-                disabled={isFetchingLocation}
-                title="Use my current location"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-theme-accent hover:bg-theme-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isFetchingLocation ? (
-                  /* Spinner */
-                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                ) : (
-                  /* Map Pin Icon */
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {errors.area && touched.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
-          </div>
+            </InputWrapper>
 
-          {/* City, District, State Row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-theme-slate mb-1">City</label>
+            <InputWrapper label="Phone Number *" fieldName="phoneNumber" icon={Phone} touched={touched} errors={errors} formData={formData}>
               <input
-                type="text"
-                placeholder="City"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className={inputClass("city")}
+                type="tel"
+                placeholder="98765 43210"
+                value={formData.phoneNumber}
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  setFormData({ ...formData, phoneNumber: formatted });
+                }}
+                onBlur={() => handleBlur("phoneNumber")}
+                className={inputClass("phoneNumber")}
               />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-theme-slate mb-1">District</label>
-              <input
-                type="text"
-                placeholder="District"
-                value={formData.district}
-                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                className={inputClass("district")}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-theme-slate mb-1">State</label>
-              <input
-                type="text"
-                placeholder="State"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                className={inputClass("state")}
-              />
-            </div>
+            </InputWrapper>
           </div>
+        </div>
 
-          {/* Budget Field */}
-          <div>
-            <label className="block text-sm font-medium text-theme-slate mb-1">Estimated Budget (Rs.)</label>
-            <input
-              type="number"
-              placeholder="500"
-              value={formData.budget}
-              onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-              onBlur={() => handleBlur("budget")}
-              className={inputClass("budget")}
-            />
-            {errors.budget && touched.budget && <p className="text-red-500 text-xs mt-1">{errors.budget}</p>}
-          </div>
-
-          {/* Product Interest Checkboxes */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <label className="block text-sm font-medium text-theme-slate">Product Interest</label>
-              {formData.productInterest.length > 0 && (
-                <span className="flex items-center justify-center bg-theme-accent text-white text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full animate-in zoom-in duration-300">
-                  {formData.productInterest.length}
-                </span>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {productOptions.map((product) => {
-                const isChecked = formData.productInterest.includes(product);
-                return (
-                  <label
-                    key={product}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                      isChecked
-                        ? "border-theme-accent bg-theme-accent/5 ring-1 ring-theme-accent"
-                        : "border-theme-slate/20 hover:border-theme-slate/40"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-theme-accent rounded focus:ring-theme-accent cursor-pointer"
-                      checked={isChecked}
-                      onChange={() => handleProductToggle(product)}
-                    />
-                    <span className={`text-sm ${isChecked ? "text-theme-navy font-semibold" : "text-theme-slate"}`}>
-                      {product}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-
-            {/* Custom Product Input (shown when 'Other' is checked) */}
-            {formData.productInterest.includes("Other") && (
-              <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                <label className="block text-sm font-medium text-theme-slate mb-1">Specify Product</label>
+        {/* Section 2: Location Details */}
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl animate-fadeIn [animation-delay:100ms]">
+          <SectionHeader 
+            icon={MapPin} 
+            title="Address / Area" 
+            subtitle="Where is the walk-in from?"
+          />
+          
+          <div className="space-y-6">
+            <InputWrapper label="Area / Locality" fieldName="area" icon={Map} touched={touched} errors={errors} formData={formData}>
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Enter product name..."
-                  value={otherProductName}
-                  onChange={(e) => setOtherProductName(e.target.value)}
-                  className={inputClass("otherProduct")}
-                  autoFocus
+                  placeholder="e.g. Koramangala"
+                  value={formData.area}
+                  onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  onBlur={() => handleBlur("area")}
+                  className={`${inputClass("area")} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={handleGetGPSLocation}
+                  disabled={isFetchingLocation}
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${
+                    isFetchingLocation 
+                      ? "bg-theme-accent/20 cursor-not-allowed" 
+                      : "text-theme-accent hover:bg-theme-accent/10 cursor-pointer"
+                  }`}
+                  title="Use GPS Location"
+                >
+                  {isFetchingLocation ? (
+                    <div className="h-5 w-5 border-2 border-theme-accent border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Globe size={20} className={formData.gpsCoordinates ? "animate-pulse" : ""} />
+                  )}
+                </button>
+              </div>
+            </InputWrapper>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <InputWrapper label="City" fieldName="city" icon={MapPin} touched={touched} errors={errors} formData={formData}>
+                <input
+                  type="text"
+                  placeholder="City"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className={inputClass("city")}
+                />
+              </InputWrapper>
+              <InputWrapper label="District" fieldName="district" icon={MapPin} touched={touched} errors={errors} formData={formData}>
+                <input
+                  type="text"
+                  placeholder="District"
+                  value={formData.district}
+                  onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                  className={inputClass("district")}
+                />
+              </InputWrapper>
+              <InputWrapper label="State" fieldName="state" icon={MapPin} touched={touched} errors={errors} formData={formData}>
+                <input
+                  type="text"
+                  placeholder="State"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className={inputClass("state")}
+                />
+              </InputWrapper>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Lead Requirements */}
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl animate-fadeIn [animation-delay:200ms]">
+          <SectionHeader 
+            icon={Package} 
+            title="What are they looking for?" 
+            subtitle="Products and budget"
+          />
+
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <label className="block text-[10px] font-semibold text-theme-slate/60 uppercase tracking-widest">Budget (₹)</label>
+              <div className="relative group">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-slate/50 group-focus-within:text-theme-accent">
+                  <Wallet size={18} />
+                </div>
+                <input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  onBlur={() => handleBlur("budget")}
+                  className={inputClass("budget")}
                 />
               </div>
-            )}
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {["500", "1500", "5000", "10000"].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, budget: amt })}
+                    className={`text-[10px] px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      formData.budget === amt 
+                        ? "bg-theme-navy text-white border-theme-navy shadow-md" 
+                        : "bg-white text-theme-slate border-theme-slate/10 hover:border-theme-accent hover:text-theme-accent shadow-sm"
+                    }`}
+                  >
+                    ₹{parseInt(amt).toLocaleString("en-IN")}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* Submit Button */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] font-semibold text-theme-slate/60 uppercase tracking-widest">Product They Want</label>
+                {formData.productInterest.length > 0 && (
+                  <span className="bg-theme-accent text-white text-[9px] font-bold h-4 px-2 rounded-full flex items-center shadow-sm animate-in zoom-in">
+                    {formData.productInterest.length} Selected
+                  </span>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {productOptions.length > 0 ? (
+                  productOptions.map((product) => {
+                    const isChecked = formData.productInterest.includes(product);
+                    return (
+                      <label
+                        key={product}
+                        className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${
+                          isChecked
+                            ? "border-theme-accent bg-theme-accent/5 ring-1 ring-theme-accent shadow-sm"
+                            : "border-theme-slate/10 hover:border-theme-slate/30 bg-theme-light/30"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => handleProductToggle(product)}
+                        />
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                          isChecked ? "bg-theme-accent border-theme-accent" : "bg-white border-theme-slate/30"
+                        }`}>
+                          {isChecked && <CheckCircle2 size={12} className="text-white" />}
+                        </div>
+                        <span className={`text-xs ${isChecked ? "text-theme-navy font-semibold" : "text-theme-slate font-normal"}`}>
+                          {product}
+                        </span>
+                      </label>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full py-6 text-center rounded-xl bg-theme-light/50 border border-dashed border-theme-slate/20">
+                     <p className="text-xs text-theme-slate">No products available. Please have the Shop Admin add products to the catalog first.</p>
+                  </div>
+                )}
+              </div>
+
+              {formData.productInterest.includes("Other") && (
+                <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
+                  <InputWrapper label="Type Product Name" fieldName="otherProduct" icon={ChevronRight} touched={touched} errors={errors} formData={formData}>
+                    <input
+                      type="text"
+                      placeholder="e.g. Swimming Goggles"
+                      value={otherProductName}
+                      onChange={(e) => setOtherProductName(e.target.value)}
+                      className={inputClass("otherProduct")}
+                      autoFocus
+                    />
+                  </InputWrapper>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Section */}
+        <div className="pt-4">
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full mt-6 cursor-pointer text-white font-bold py-3 px-4 rounded-lg transition-all ${
+            className={`w-full group relative overflow-hidden text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all active:scale-[0.98] cursor-pointer ${
               isSubmitting 
-                ? "bg-theme-accent/70 cursor-not-allowed" 
-                : "bg-theme-accent hover:bg-theme-accent/90 shadow-md"
+                ? "bg-theme-slate/30 cursor-not-allowed" 
+                : "bg-theme-navy hover:shadow-xl hover:-translate-y-0.5"
             }`}
           >
-            {isSubmitting ? "Saving to Database..." : "Save Lead"}
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              {isSubmitting ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <span>Save Walk-In</span>
+                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </div>
+            {!isSubmitting && (
+              <div className="absolute inset-0 bg-gradient-to-r from-theme-accent to-theme-navy opacity-0 group-hover:opacity-20 transition-opacity" />
+            )}
           </button>
-        </form>
-      </div>
+          <p className="text-center text-[10px] text-theme-slate mt-4 uppercase tracking-tighter">
+            Saved securely for store owners
+          </p>
+        </div>
+      </form>
     </div>
   );
 }

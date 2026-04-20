@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar.jsx"; // Using the reusable component!
+import Sidebar from "@/components/sidebar.jsx";
+import { BarChart3, PlusCircle, User, Store, Users } from "lucide-react";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -11,18 +12,17 @@ export default function AdminLayout({ children }) {
     router.push("/");
   };
 
-  // 1. Define the specific menu buttons for the Admin
-  // Notice these point to the /admin/ routes you just created
   const adminMenu = [
-    { href: "/admin/dashboard", label: "All Shop Leads", icon: "📊" },
-    { href: "/admin/new_lead", label: "Create Lead (Admin)", icon: "➕" },
-    { href: "/admin/profile", label: "My Profile", icon: "👤" }
+    { href: "/admin/dashboard", label: "All Shop Leads", icon: BarChart3 },
+    { href: "/admin/products", label: "Products Catalog", icon: Store },
+    { href: "/admin/new_lead", label: "Create Lead  ", icon: PlusCircle },
+    { href: "/admin/manage_employees", label: "Staff Directory", icon: Users },
+    { href: "/admin/profile", label: "My Profile", icon: User }
   ];
 
   return (
-    <div className="flex min-h-screen bg-theme-light font-sans">
+    <div className="flex flex-col md:flex-row min-h-screen pb-20 md:pb-0">
       
-      {/* 2. Pass the admin details to your Sidebar */}
       <Sidebar 
         title="Manager Portal"
         subtitle="Shop Admin View"
@@ -30,10 +30,10 @@ export default function AdminLayout({ children }) {
         handleLogout={handleLogout}
       />
 
-      {/* 3. The Main Content Area */}
-      {/* Next.js injects your admin/dashboard or admin/new-lead pages right here */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="w-full max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
 
     </div>

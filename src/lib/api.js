@@ -60,13 +60,15 @@ export const authAPI = {
 // ── User Profile ────────────────────────────
 export const userAPI = {
   getProfile: () => api.get("/user/profile"),
+  register: (data) => api.post("/user/register", data),
+  getEmployees: () => api.get("/user/employees"),
+  deleteEmployee: (id) => api.delete(`/user/employees/${id}`),
   updateProfile: (data) => api.put("/user/profile", data),
+  updateShopProducts: (products) => api.put("/user/shop/products", { products }),
 };
 
 // ── Leads (Employee & Admin) ────────────────
 export const leadsAPI = {
   getMyLeads: () => api.get("/employee/myLeads"),
   createLead: (data) => api.post("/employee/createNewLead", data),
-  updateStatus: (leadId, status) =>
-    api.patch(`/employee/leads/${leadId}/status`, { status }),
 };
