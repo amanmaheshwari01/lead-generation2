@@ -10,7 +10,8 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle2,
-  X
+  X,
+  Shield
 } from "lucide-react";
 
 const InputWrapper = ({ label, fieldName, icon: Icon, touched, errors, formData, children }) => (
@@ -47,7 +48,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    role: "Employee" // Default to Employee
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -64,6 +66,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
         return value.length < 6 ? "Password must be at least 6 characters" : "";
       case "confirmPassword":
         return value !== formData.password ? "Passwords do not match" : "";
+      case "role":
+        return !value ? "Role is required" : "";
       default:
         return "";
     }
@@ -95,7 +99,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setTouched({ name: true, email: true, password: true, confirmPassword: true });
+      setTouched({ name: true, email: true, password: true, confirmPassword: true, role: true });
       return;
     }
 
@@ -105,11 +109,11 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: "Employee"
+        role: formData.role
       });
 
       if (response.data.success) {
-        toast.success("Employee registered successfully!");
+        toast.success(`${formData.role} registered successfully!`);
         onSuccess?.();
         onClose();
       } else {
@@ -145,7 +149,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
           <div>
             <h2 className="text-xl font-bold text-theme-navy flex items-center gap-2">
               <User size={20} className="text-theme-accent" />
-              Register Employee
+              Register Staff Member
             </h2>
             <p className="text-theme-slate/70 text-[11px] font-medium uppercase tracking-wider mt-0.5">Shop Admin Portal</p>
           </div>
@@ -195,7 +199,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
               />
             </InputWrapper>
 
-            <InputWrapper label="Confirm" fieldName="confirmPassword" icon={Lock} touched={touched} errors={errors} formData={formData}>
+            <InputWrapper label="Confirm Password" fieldName="confirmPassword" icon={Lock} touched={touched} errors={errors} formData={formData}>
               <input
                 type="password"
                 name="confirmPassword"
@@ -207,6 +211,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
               />
             </InputWrapper>
           </div>
+
+          <InputWrapper label="Assign Access Level / Role" fieldName="role" icon={Shield} touched={touched} errors={errors} formData={formData}>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              onBlur={() => handleBlur("role")}
+              className={`${inputClass("role")} appearance-none cursor-pointer bg-white`}
+            >
+              <option value="Employee">Employee (Lead Generation Only)</option>
+              <option value="Shop Admin">Shop Admin (Full Shop Management)</option>
+            </select>
+          </InputWrapper>
 
           <div className="pt-4 flex gap-3">
              <button

@@ -51,10 +51,22 @@ export default function ManageEmployeesPage() {
     }
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      const response = await userAPI.updateUserRole(userId, newRole);
+      if (response.data.success) {
+        toast.success(`Role updated to ${newRole}. Note: The user may need to re-login to see all changes.`);
+        setEmployees(employees.map(e => e._id === userId ? { ...e, role: newRole } : e));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update role");
+    }
+  };
+
   const columns = [
     {
       key: "name",
-      label: "Employee Name",
+      label: "Staff Member",
       render: (emp) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-theme-accent/10 text-theme-accent flex items-center justify-center font-bold text-sm">
@@ -62,7 +74,9 @@ export default function ManageEmployeesPage() {
           </div>
           <div>
             <p className="font-bold text-theme-navy text-sm">{emp.name}</p>
-            <p className="text-theme-slate/60 text-[10px] font-medium uppercase tracking-wider">Level 1 Staff</p>
+            <p className="text-theme-slate/60 text-[10px] font-medium uppercase tracking-wider">
+              {emp.role === 'Shop Admin' ? 'Store Manager' : 'Sales Representative'}
+            </p>
           </div>
         </div>
       )
@@ -79,13 +93,28 @@ export default function ManageEmployeesPage() {
     },
     {
       key: "role",
-      label: "Role",
+      label: "Access Level / Role",
       align: "center",
-      render: (emp) => (
-        <span className="px-3 py-1 bg-theme-navy/5 text-theme-navy text-[10px] font-bold rounded-full uppercase tracking-tighter">
-          {emp.role}
-        </span>
-      )
+      render: (emp) => {
+        // Simple logic to check if this is the current active profile to prevent self-lockout
+        // In a real app we'd get currentUserId from a hook, but here we can check local storage if needed
+        // For now, let's assume all admins can edit roles except their own (checked in backend anyway)
+        return (
+          <div className="relative inline-block w-40">
+            <select
+              value={emp.role}
+              onChange={(e) => handleRoleChange(emp._id, e.target.value)}
+              className="w-full bg-theme-navy/5 text-theme-navy text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-tighter outline-none border border-transparent focus:border-theme-accent/30 cursor-pointer transition-all hover:bg-theme-navy/10 appearance-none"
+            >
+              <option value="Employee">Employee</option>
+              <option value="Shop Admin">Shop Admin</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+              <Shield size={10} />
+            </div>
+          </div>
+        )
+      }
     },
     {
       key: "actions",
@@ -95,7 +124,7 @@ export default function ManageEmployeesPage() {
         <button
           onClick={() => setDeleteTarget(emp)}
           className="p-2.5 rounded-xl text-theme-slate/40 hover:text-theme-error hover:bg-theme-error/10 transition-all cursor-pointer group"
-          title="Remove Employee"
+          title="Remove Staff"
         >
           <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
         </button>

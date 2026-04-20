@@ -65,6 +65,7 @@ export const userAPI = {
   deleteEmployee: (id) => api.delete(`/user/employees/${id}`),
   updateProfile: (data) => api.put("/user/profile", data),
   updateShopProducts: (products) => api.put("/user/shop/products", { products }),
+  updateUserRole: (id, role) => api.put(`/user/employees/${id}/role`, { role }),
 };
 
 // ── Leads (Employee & Admin) ────────────────
