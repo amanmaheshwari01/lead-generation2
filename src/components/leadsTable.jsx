@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import DataTable from "./dataTable";
+import DataTable from "./dataTable.jsx";
 import { MapPin, Map as MapIcon, Wallet, User, Phone } from "lucide-react";
 
 export default function LeadsTable({ initialLeads = [] }) {
