@@ -19,15 +19,18 @@ import {
   ChevronRight
 } from "lucide-react";
      
-const SectionHeader = ({ icon: Icon, title, subtitle }) => (
-  <div className="flex items-center gap-3 mb-6 pb-2 border-b border-theme-slate/10">
-    <div className="p-2 bg-theme-accent/10 rounded-lg text-theme-accent">
-      <Icon size={20} />
+const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
+  <div className="flex items-center justify-between gap-3 mb-6 pb-2 border-b border-theme-slate/10">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-theme-accent/10 rounded-lg text-theme-accent">
+        <Icon size={20} />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold text-theme-navy leading-tight">{title}</h2>
+        {subtitle && <p className="text-[11px] text-theme-slate/70">{subtitle}</p>}
+      </div>
     </div>
-    <div>
-      <h2 className="text-lg font-semibold text-theme-navy leading-tight">{title}</h2>
-      {subtitle && <p className="text-[11px] text-theme-slate/70">{subtitle}</p>}
-    </div>
+    {action && <div className="animate-fadeIn">{action}</div>}
   </div>
 );
 
@@ -68,9 +71,9 @@ export default function NewLeadForm({ redirectPath, initialProducts = [] }) {
     budget: "",
     productInterest: [],
     area: "",
-    city: "",
-    district: "",
-    state: "",
+    city: "Jaipur",
+    district: "Jaipur",
+    state: "Rajasthan",
     gpsCoordinates: "",
   });
 
@@ -347,38 +350,60 @@ export default function NewLeadForm({ redirectPath, initialProducts = [] }) {
             icon={MapPin} 
             title="Address / Area" 
             subtitle="Where is the walk-in from?"
+            action={
+              <button
+                type="button"
+                onClick={handleGetGPSLocation}
+                disabled={isFetchingLocation}
+                className={`p-2 rounded-full transition-all ${
+                  isFetchingLocation 
+                    ? "text-theme-accent animate-pulse cursor-not-allowed" 
+                    : "text-theme-accent hover:bg-theme-accent/10 cursor-pointer active:scale-90"
+                }`}
+                title="Use GPS Location"
+              >
+                {isFetchingLocation ? (
+                  <div className="h-5 w-5 border-2 border-theme-accent border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Globe size={22} className={formData.gpsCoordinates ? "animate-pulse" : ""} />
+                )}
+              </button>
+            }
           />
           
           <div className="space-y-6">
-            <InputWrapper label="Area / Locality" fieldName="area" icon={Map} touched={touched} errors={errors} formData={formData}>
-              <div className="relative">
+            <div className="space-y-1.5 flex-1">
+              <div className="flex justify-between items-center mb-0.5">
+                <label className="block text-[10px] font-semibold text-theme-slate/60 uppercase tracking-widest">Area / Locality</label>
+                {touched.area && (
+                  <div className="animate-in zoom-in duration-300">
+                    {errors.area ? (
+                      <AlertCircle size={14} className="text-theme-error" />
+                    ) : formData.area ? (
+                      <CheckCircle2 size={14} className="text-green-500" />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              <div className="relative group">
+                <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${
+                  errors.area && touched.area ? "text-theme-error" : "text-theme-slate/50 group-focus-within:text-theme-accent"
+                }`}>
+                  <Map size={18} />
+                </div>
                 <input
                   type="text"
                   placeholder="e.g. Koramangala"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                   onBlur={() => handleBlur("area")}
-                  className={`${inputClass("area")} pr-12`}
+                  className={inputClass("area")}
                 />
-                <button
-                  type="button"
-                  onClick={handleGetGPSLocation}
-                  disabled={isFetchingLocation}
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${
-                    isFetchingLocation 
-                      ? "bg-theme-accent/20 cursor-not-allowed" 
-                      : "text-theme-accent hover:bg-theme-accent/10 cursor-pointer"
-                  }`}
-                  title="Use GPS Location"
-                >
-                  {isFetchingLocation ? (
-                    <div className="h-5 w-5 border-2 border-theme-accent border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Globe size={20} className={formData.gpsCoordinates ? "animate-pulse" : ""} />
-                  )}
-                </button>
               </div>
-            </InputWrapper>
+              {errors.area && touched.area && (
+                <p className="text-theme-error text-[10px] font-medium animate-in slide-in-from-top-1">{errors.area}</p>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputWrapper label="City" fieldName="city" icon={MapPin} touched={touched} errors={errors} formData={formData}>
