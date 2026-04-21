@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar.jsx";
 import { BarChart3, PlusCircle, User, Store, Users } from "lucide-react";
+import { authAPI } from "@/lib/api";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/");
+    authAPI.logout();
   };
 
   const adminMenu = [
@@ -30,8 +30,8 @@ export default function AdminLayout({ children }) {
         handleLogout={handleLogout}
       />
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="w-full max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto p-4 md:p-10">
+        <div className="w-full max-w-[1600px] mx-auto">
           {children}
         </div>
       </main>

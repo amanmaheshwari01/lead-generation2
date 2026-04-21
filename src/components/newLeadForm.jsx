@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { leadsAPI, userAPI } from "@/lib/api";
+import pluralize from "pluralize";
 import { 
   User, 
   Phone, 
@@ -253,7 +254,8 @@ export default function NewLeadForm({ redirectPath, initialProducts = [] }) {
       // Create a copy of the payload to modify productInterest if "Other" is selected
       let finalProductInterest = [...formData.productInterest];
       if (finalProductInterest.includes("Other") && otherProductName.trim()) {
-        finalProductInterest = finalProductInterest.map(p => p === "Other" ? otherProductName.trim() : p);
+        const normalizedOther = pluralize.plural(otherProductName.trim());
+        finalProductInterest = finalProductInterest.map(p => p === "Other" ? normalizedOther : p);
       } else if (finalProductInterest.includes("Other")) {
         finalProductInterest = finalProductInterest.filter(p => p !== "Other");
       }

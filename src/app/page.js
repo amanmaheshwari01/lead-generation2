@@ -14,13 +14,17 @@ export default function Home() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    
+    // Cleanup any legacy 'token' entries before starting
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+
     try {
       const { data } = await authAPI.login(email, password);
 
       if (!data.success) throw new Error(data.message || "Login failed");
-
-      localStorage.setItem("token", data.token);
-      document.cookie = `token=${data.token}; path=/; max-age=7200; Secure; SameSite=Strict`;
 
       if (data.role === "Employee") {
         router.push("/employee/dashboard");
@@ -75,7 +79,7 @@ export default function Home() {
                 e.preventDefault();
                 setType(!type);
               }} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-slate hover:text-theme-navy transition-colors cursor-pointer">
-                {type ? <EyeIcon size={18} /> : <EyeOffIcon size={18} />}
+                {type ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
               </button>
             </div>
           </div>

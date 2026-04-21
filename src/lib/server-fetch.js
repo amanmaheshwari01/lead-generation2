@@ -6,20 +6,20 @@ import { cookies } from "next/headers";
  */
 export async function serverFetch(endpoint, options = {}) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  const accessToken = cookieStore.get("accessToken")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
 
-  if (!token) {
-    return { success: false, message: "No authentication token found. Please log in again.", status: 401 };
-  }
+  // Note: If accessToken is missing, the Middleware will attempt a silent refresh 
+  // before this function is called. We proceed to let the backend verify the state.
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010";
   
   try {
     const res = await fetch(`${apiUrl}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Cookie': `accessToken=${accessToken}; refreshToken=${refreshToken}`,
         ...options.headers,
       },
       // Default to no-store so CRM data is always perfectly fresh

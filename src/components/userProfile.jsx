@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { User, Mail, Shield, Store, Pencil, Save, X, Loader2, TrendingUp, LogOut } from "lucide-react";
-import { userAPI } from "@/lib/api";
+import { User, Mail, Shield, Store, Pencil, Save, X, Loader2, TrendingUp, LogOut, CheckCircle2, Plus } from "lucide-react";
+import { userAPI, authAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function UserProfile({ initialProfile }) {
@@ -41,10 +41,7 @@ export default function UserProfile({ initialProfile }) {
   };
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("token");
-      router.push("/");
-    }
+    authAPI.logout();
   };
 
   const getInitials = (name) => {
@@ -58,14 +55,8 @@ export default function UserProfile({ initialProfile }) {
   };
 
   const getRoleBadge = (role) => {
-    const styles = {
-      "Super Admin": { bg: "bg-theme-navy", text: "text-white" },
-      "Shop Admin": { bg: "bg-theme-slate", text: "text-white" },
-      Employee: { bg: "bg-theme-accent", text: "text-white" },
-    };
-    const s = styles[role] || styles.Employee;
     return (
-      <span className={`${s.bg} ${s.text} px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg`}>
+      <span className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-800 uppercase tracking-widest border border-slate-200 bg-white shadow-sm">
         {role}
       </span>
     );
@@ -75,8 +66,8 @@ export default function UserProfile({ initialProfile }) {
     return (
       <div className="flex items-center justify-center h-full min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 text-theme-accent animate-spin" />
-          <p className="text-theme-slate text-sm animate-pulse">Loading profile...</p>
+          <Loader2 className="w-10 h-10 text-slate-400 animate-spin" />
+          <p className="text-slate-500 text-sm font-medium">Authenticating profile...</p>
         </div>
       </div>
     );
@@ -85,132 +76,133 @@ export default function UserProfile({ initialProfile }) {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full min-h-[60vh]">
-        <p className="text-theme-error text-lg">Failed to load profile data.</p>
+        <p className="text-red-500 text-lg font-medium">Profile data unavailable.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto animate-fadeIn">
-      {/* Profile Card */}
-      <div className="glass-panel rounded-3xl animate-fadeIn">
-        <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 md:p-12 max-w-5xl mx-auto space-y-10 animate-fadeIn">
+      {/* Cloud Minimalism Card with requested Gray-to-White Gradient */}
+      <div className="bg-gradient-to-br from-slate-200 to-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/20 overflow-hidden">
+        <div className="p-8 md:p-12 space-y-12">
           
-          {/* Top Identity Section */}
-          <div className="flex items-center gap-5">
-            <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-theme-accent to-theme-navy flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              {getInitials(user.name)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-theme-navy truncate tracking-tight">{user.name}</h2>
-                <div className="hidden sm:block">{getRoleBadge(user.role)}</div>
+          {/* Executive Identity Section */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-10">
+            <div className="shrink-0">
+              <div className="w-28 h-28 rounded-[2rem] bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 text-4xl font-semibold shadow-sm transition-transform hover:scale-105 duration-500">
+                {getInitials(user.name)}
               </div>
-              <p className="text-theme-slate/70 text-sm font-medium">{user.email}</p>
             </div>
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-theme-navy/5 text-theme-navy hover:bg-theme-navy/10 rounded-xl transition-all font-semibold text-xs cursor-pointer"
-              >
-                <Pencil className="w-3 h-3" />
-                Edit Profile
-              </button>
-            )}
+            <div className="min-w-0 flex-1 w-full space-y-6 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="space-y-1">
+                  <h2 className="text-3xl font-semibold text-slate-800 tracking-tight">{user.name}</h2>
+                  <p className="text-slate-500 font-medium text-lg">{user.email}</p>
+                </div>
+                <div className="flex shrink-0">{getRoleBadge(user.role)}</div>
+              </div>
+              
+              {!editing && (
+                <div className="pt-2 flex flex-wrap justify-center sm:justify-start gap-4">
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-2.5 px-6 py-3 bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 rounded-2xl transition-all font-semibold text-xs uppercase tracking-widest active:scale-95 shadow-sm cursor-pointer"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Modify Details
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-2.5 px-6 py-3 bg-white text-red-500 border border-red-100 hover:bg-red-50 rounded-2xl transition-all font-semibold text-xs uppercase tracking-widest active:scale-95 cursor-pointer shadow-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Secure Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="sm:hidden">{getRoleBadge(user.role)}</div>
-
-          <hr className="border-theme-slate/5" />
+          <div className="h-px bg-slate-200" />
 
           {/* User Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-            <div>
-              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Full Legal Name</p>
-              {editing ? (
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-theme-accent/20 focus:border-theme-accent font-semibold text-theme-navy outline-none transition-all shadow-sm"
-                />
-              ) : (
-                <p className="text-sm font-semibold text-theme-navy">{user.name}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Registered Email</p>
-              {editing ? (
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-theme-accent/20 focus:border-theme-accent font-semibold text-theme-navy outline-none transition-all shadow-sm"
-                />
-              ) : (
-                <p className="text-sm font-semibold text-theme-navy">{user.email}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Assigned Shop</p>
-              <p className="text-sm font-semibold text-theme-navy">{user.shop || "Main Headquarters"}</p>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Member Since</p>
-              <p className="text-sm font-semibold text-theme-navy">
-                {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB", { day: 'numeric', month: 'long', year: 'numeric' }) : "April 2024"}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 gap-x-16">
+            {[
+              { label: "Legal Full Name", value: user.name, field: "name", icon: User },
+              { label: "Business Email", value: user.email, field: "email", icon: Mail },
+              { label: "Assigned Division", value: user.shop || "Main Headquarters", icon: Store },
+              { label: "Authentication Date", value: user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB", { day: 'numeric', month: 'long', year: 'numeric' }) : "April 2024", icon: Shield }
+            ].map((item, idx) => (
+              <div key={idx} className="space-y-3 group">
+                <div className="flex items-center gap-2.5">
+                  <div className="text-slate-500">
+                    {item.icon && <item.icon size={14} />}
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">{item.label}</p>
+                </div>
+                {editing && item.field ? (
+                  <input
+                    type="text"
+                    value={form[item.field]}
+                    onChange={(e) => setForm({ ...form, [item.field]: e.target.value })}
+                    className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:border-slate-400 font-medium text-slate-800 outline-none transition-all bg-white"
+                  />
+                ) : (
+                  <p className="text-xl font-medium text-slate-800 tracking-tight">{item.value}</p>
+                )}
+              </div>
+            ))}
             
-            <div>
-              <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-[0.2em] mb-2.5">Account Status</p>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-theme-accent opacity-50" />
-                <p className="text-sm font-semibold text-theme-navy">Verified Active</p>
+            <div className="md:col-span-2 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="text-slate-500">
+                  <CheckCircle2 size={14} />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">System Status</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-2 w-2 rounded-full bg-slate-400"></div>
+                <p className="text-xl font-medium text-slate-800 tracking-tight">Active Connection</p>
               </div>
             </div>
           </div>
 
           {editing ? (
-            <div className="flex items-center gap-4 pt-4">
+            <div className="flex items-center gap-5 pt-6">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 py-3 bg-theme-accent text-white rounded-xl font-black text-xs shadow-lg shadow-theme-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                className="flex-1 py-4.5 bg-slate-800 text-white rounded-2xl font-semibold text-xs tracking-widest hover:bg-slate-900 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shadow-xl shadow-slate-800/10"
               >
-                {saving ? "UPDATING..." : "SAVE CHANGES"}
+                <Save className="w-4 h-4" />
+                {saving ? "SAVING..." : "COMMIT CHANGES"}
               </button>
               <button
                 onClick={handleCancel}
-                className="flex-1 py-3 bg-theme-slate/10 text-theme-slate rounded-xl font-black text-xs hover:bg-theme-slate/20 transition-all cursor-pointer"
+                className="flex-1 py-4.5 bg-slate-50 text-slate-500 rounded-2xl font-semibold text-xs tracking-widest hover:bg-slate-100 transition-all cursor-pointer"
               >
-                CANCEL
+                DISCARD
               </button>
             </div>
           ) : (
-            <div className="pt-6 border-t border-theme-slate/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-theme-accent/5 text-theme-accent flex items-center justify-center border border-theme-accent/10">
-                  <TrendingUp className="w-5 h-5" />
+            <div className="pt-12 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="flex items-center gap-8">
+                <div className="w-16 h-16 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm">
+                  <TrendingUp className="w-8 h-8 text-slate-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-theme-slate/40 uppercase tracking-widest">Performance Stat</p>
-                  <p className="text-theme-navy font-bold text-lg leading-tight">
-                    {user.leadCount || 0} <span className="text-theme-slate text-[10px] font-semibold">Leads Saved</span>
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Lead Management</p>
+                  <p className="text-slate-800 font-semibold text-4xl tracking-tighter">
+                    {user.leadCount || 0} <span className="text-slate-500 text-sm font-medium tracking-normal ml-2">Total Managed</span>
                   </p>
                 </div>
               </div>
               
-              <button 
-                onClick={handleLogout}
-                className="md:hidden flex items-center justify-center gap-2 px-6 py-2.5 bg-theme-error/10 text-theme-error hover:bg-theme-error hover:text-white rounded-xl font-bold text-xs transition-all shadow-sm active:scale-[0.98] cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-                SIGN OUT
-              </button>
+              <div className="px-6 py-4 bg-white rounded-2xl border border-slate-50 shadow-sm flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Optimized Access</span>
+              </div>
             </div>
           )}
         </div>
