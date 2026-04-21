@@ -6,7 +6,7 @@ import AddEmployeeModal from "@/components/addEmployeeModal";
 import DeleteConfirmationModal from "@/components/deleteConfirmationModal";
 import { userAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { Users, Mail, Trash2, UserPlus, Shield } from "lucide-react";
+import { Users, Mail, Trash2, UserPlus, Shield, ChevronDown } from "lucide-react";
 
 export default function ManageEmployeesPage() {
   const [employees, setEmployees] = useState([]);
@@ -100,17 +100,17 @@ export default function ManageEmployeesPage() {
         // In a real app we'd get currentUserId from a hook, but here we can check local storage if needed
         // For now, let's assume all admins can edit roles except their own (checked in backend anyway)
         return (
-          <div className="relative inline-block w-40">
+          <div className="relative inline-block w-40 group">
             <select
               value={emp.role}
               onChange={(e) => handleRoleChange(emp._id, e.target.value)}
-              className="w-full bg-theme-navy/5 text-theme-navy text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-tighter outline-none border border-transparent focus:border-theme-accent/30 cursor-pointer transition-all hover:bg-theme-navy/10 appearance-none"
+              className="w-full bg-theme-navy/5 text-theme-navy text-[10px] font-bold px-3 py-1.5 pr-8 rounded-full uppercase tracking-tighter outline-none border border-transparent focus:border-theme-accent/30 cursor-pointer transition-all hover:bg-theme-navy/10 appearance-none"
             >
               <option value="Employee">Employee</option>
               <option value="Shop Admin">Shop Admin</option>
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-              <Shield size={10} />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 group-hover:opacity-70 group-focus-within:opacity-100 group-focus-within:text-theme-accent transition-all">
+              <ChevronDown size={14} />
             </div>
           </div>
         )
@@ -135,7 +135,7 @@ export default function ManageEmployeesPage() {
   const adminActions = (
     <button
       onClick={() => setIsAddModalOpen(true)}
-      className="flex items-center gap-2 px-5 py-2.5 bg-theme-navy text-white rounded-2xl font-bold text-sm shadow-lg hover:shadow-theme-navy/20 hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer"
+      className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-theme-navy text-white rounded-2xl font-bold text-sm shadow-lg hover:shadow-theme-navy/20 hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer"
     >
       <UserPlus size={18} />
       <span>Add New Employee</span>
@@ -143,7 +143,16 @@ export default function ManageEmployeesPage() {
   );
 
   return (
-    <>
+    <div className="relative min-h-screen">
+      {/* Mobile Floating Action Button (Top Right) */}
+      <button
+        onClick={() => setIsAddModalOpen(true)}
+        className="md:hidden fixed top-6 right-6 z-[60] p-4 bg-theme-navy text-white rounded-2xl shadow-2xl active:scale-90 transition-all border border-white/20"
+        title="Add New Employee"
+      >
+        <UserPlus size={24} />
+      </button>
+
       <DataTable
         data={employees}
         columns={columns}
@@ -154,6 +163,7 @@ export default function ManageEmployeesPage() {
         searchFields={["name", "email"]}
         isLoading={isLoading}
         filters={adminActions}
+        forceFilterVisible={true}
         emptyIcon={Users}
         emptyTitle="No staff members yet"
         emptySubtitle="Start building your team by adding your first employee."
@@ -173,6 +183,6 @@ export default function ManageEmployeesPage() {
         title="Remove Staff"
         message={`Are you sure you want to remove ${deleteTarget?.name}? They will no longer be able to access the portal.`}
       />
-    </>
+    </div>
   );
 }

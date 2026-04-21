@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -13,15 +13,15 @@ export default function Sidebar({
   return (
     <>
       {/* =========================================
-          1. DESKTOP SIDEBAR (Hidden on Mobile)
+          1. DESKTOP SIDEBAR (Cloud Minimalism)
           ========================================= */}
-      <aside className="hidden md:flex w-64 m-4 rounded-3xl glass-panel flex-col z-10 sticky top-4 h-[calc(100vh-2rem)] transition-all duration-300">
-        <div className="p-8 pb-6">
-          <h1 className="text-theme-navy text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && <p className="text-theme-slate/80 text-sm mt-1 font-medium">{subtitle}</p>}
+      <aside className="hidden md:flex w-64 m-4 rounded-[2rem] bg-white border border-slate-200 flex-col z-10 sticky top-4 h-[calc(100vh-2rem)] transition-all duration-300 shadow-sm shadow-slate-200/40">
+        <div className="p-8 pb-10">
+          <h1 className="text-slate-800 text-2xl font-bold tracking-tight">{title}</h1>
+          {subtitle && <p className="text-slate-500 text-[10px] mt-2 font-bold uppercase tracking-[0.2em]">{subtitle}</p>}
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -29,22 +29,23 @@ export default function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-200 flex items-center gap-3 font-semibold text-sm ${
+                className={`w-full text-left px-5 py-3.5 rounded-2xl transition-all duration-200 flex items-center gap-4 font-medium text-[13px] tracking-tight ${
                   isActive
-                    ? "bg-theme-accent text-white shadow-lg shadow-theme-accent/20 translate-x-1" 
-                    : "text-theme-slate hover:bg-theme-accent/5 hover:text-theme-accent hover:translate-x-1"
+                    ? "bg-slate-200 text-slate-800 shadow-sm" 
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                 }`}
               >
-                <Icon size={18} className={isActive ? "text-white" : "text-theme-slate/70 group-hover:text-theme-accent"} />
+                <Icon size={18} className={isActive ? "text-slate-800" : "text-slate-500"} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 mt-auto">
+        
+        <div className="p-4 mt-auto border-t border-slate-50">
           <button 
             onClick={handleLogout}
-            className="w-full text-left px-4 py-3 rounded-2xl text-theme-slate hover:bg-theme-error/5 hover:text-theme-error transition-all duration-200 flex items-center gap-3 font-semibold text-sm cursor-pointer"
+            className="w-full text-left px-6 py-4 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 flex items-center gap-4 font-bold text-[10px] uppercase tracking-widest cursor-pointer"
           >
             <LogOut size={18} />
             <span>Sign Out</span>
@@ -53,9 +54,9 @@ export default function Sidebar({
       </aside>
 
       {/* =========================================
-          2. MOBILE FACEBOOK-STYLE BOTTOM TAB BAR
+          2. MOBILE NAVIGATION (Minimalist Floating)
           ========================================= */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-theme-slate/10 shadow-[0_-8px_30px_rgba(0,0,0,0.05)] z-50 flex items-end justify-around px-2 pb-safe h-16">
+      <nav className="md:hidden fixed bottom-6 left-4 right-4 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 flex items-center justify-around px-2 h-16 animate-fadeIn transition-all">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           const isCreate = item.href.includes("new_lead");
@@ -66,12 +67,11 @@ export default function Sidebar({
                <Link
                  key={item.href}
                  href={item.href}
-                 className="flex flex-col items-center justify-center relative -top-3 group"
+                 className="flex flex-col items-center justify-center relative -top-6 group"
                >
-                 <div className="flex items-center justify-center w-14 h-14 rounded-full bg-theme-accent text-white shadow-xl shadow-theme-accent/30 border-4 border-white transition-transform duration-300 active:scale-95">
-                   <Icon size={24} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-300" />
+                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800 text-white shadow-2xl shadow-slate-800/20 border-4 border-white transition-all duration-300 active:scale-95">
+                   <Plus size={24} strokeWidth={2.5} />
                  </div>
-                 <span className="text-[10px] mt-1 font-bold text-theme-accent translate-y-[2px]">Create</span>
                </Link>
              )
           }
@@ -80,29 +80,18 @@ export default function Sidebar({
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center justify-center p-2 mb-1 relative group w-16"
+              className="flex flex-col items-center justify-center p-2 relative group w-14 transition-all duration-300"
             >
-              <div 
-                className={`flex items-center justify-center w-12 h-8 rounded-xl transition-all duration-300 ${
-                  isActive ? "bg-theme-accent/10" : "bg-transparent group-hover:bg-theme-slate/5"
-                }`}
-              >
-                <Icon 
-                  size={20} 
-                  strokeWidth={isActive ? 2.5 : 2}
-                  className={`transition-colors duration-300 ${
-                    isActive ? "text-theme-accent" : "text-theme-slate/50 group-hover:text-theme-slate"
-                  }`} 
-                />
-              </div>
-              
-              <span 
-                className={`text-[9px] mt-1 font-bold ${
-                  isActive ? "text-theme-accent" : "text-theme-slate/50"
-                }`}
-              >
-                {item.label.split(' ')[0]} {/* Shorthand label */}
-              </span>
+              <Icon 
+                size={20} 
+                strokeWidth={isActive ? 2.5 : 2}
+                className={`transition-all duration-300 ${
+                  isActive ? "text-slate-800 scale-110" : "text-slate-400 group-hover:text-slate-600"
+                }`} 
+              />
+              {isActive && (
+                <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-slate-800 animate-pulse" />
+              )}
             </Link>
           );
         })}

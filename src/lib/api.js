@@ -1,11 +1,8 @@
 import axios from "axios";
 
 // ============================================
-// Centralized Axios Instance — Production Grade
+// Centralized Axios Instance — 100% Cookie Base
 // ============================================
-// All API calls go through this single instance.
-// Token injection, error handling, and base URL
-// are configured once here.
 
 const api = axios.create({
   baseURL: "/api",
@@ -13,34 +10,61 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Crucial for sending/receiving HttpOnly cookies
 });
 
-// ── Request Interceptor ─────────────────────
-api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+// Variables to handle silent refresh logic
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  });
+  failedQueue = [];
+};
 
 // ── Response Interceptor ────────────────────
-// Handles 401 (expired/invalid token) globally
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid — clear and redirect to login
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        window.location.href = "/";
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 Unauthorized errors (Access Token expired)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => api(originalRequest))
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Simple cookie-only refresh via the existing proxy
+        await api.post("/user/refresh", {}, { _retry: true });
+        
+        processQueue(null);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError);
+        // If refresh fails, the session is dead
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -51,13 +75,22 @@ export default api;
 // API Service Functions
 // ============================================
 
-// ── Auth ────────────────────────────────────
 export const authAPI = {
   login: (email, password) =>
     api.post("/user/login", { email, password }),
+  refresh: () => 
+    api.post("/user/refresh"),
+  logout: () =>
+    api.post("/user/logout").finally(() => {
+      if (typeof window !== "undefined") {
+        // Full cleanup of legacy keys
+        localStorage.removeItem("token");
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        window.location.href = "/";
+      }
+    }),
 };
 
-// ── User Profile ────────────────────────────
 export const userAPI = {
   getProfile: () => api.get("/user/profile"),
   register: (data) => api.post("/user/register", data),
@@ -68,7 +101,6 @@ export const userAPI = {
   updateUserRole: (id, role) => api.put(`/user/employees/${id}/role`, { role }),
 };
 
-// ── Leads (Employee & Admin) ────────────────
 export const leadsAPI = {
   getMyLeads: () => api.get("/employee/myLeads"),
   createLead: (data) => api.post("/employee/createNewLead", data),

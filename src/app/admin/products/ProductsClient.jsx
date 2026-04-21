@@ -4,7 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Store, X, Loader2, Pencil, Check, Plus, Trash2 } from "lucide-react";
 import { userAPI } from "@/lib/api";
+import pluralize from "pluralize";
 import DeleteConfirmationModal from "@/components/deleteConfirmationModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProductsClient({ initialProducts }) {
   const [products, setProducts] = useState(initialProducts || []);
@@ -19,6 +21,9 @@ export default function ProductsClient({ initialProducts }) {
 
   // Deletion state
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // UI state
+  const [isAddSectionVisible, setIsAddSectionVisible] = useState(false);
 
   /**
    * Universal Sync Function
@@ -49,17 +54,20 @@ export default function ProductsClient({ initialProducts }) {
       return;
     }
     
-    const isDuplicate = products.some(p => p.productName.toLowerCase() === newProductName.trim().toLowerCase());
+    // Normalize to plural form
+    const normalizedName = pluralize.plural(newProductName.trim());
+    
+    const isDuplicate = products.some(p => p.productName.toLowerCase() === normalizedName.toLowerCase());
     if (isDuplicate) {
-      toast.error("This product is already in your catalog.");
+      toast.error(`"${normalizedName}" is already in your catalog.`);
       return;
     }
 
-    const updated = [...products, { productName: newProductName.trim() }];
+    const updated = [...products, { productName: normalizedName }];
     const success = await syncChanges(updated);
     if (success) {
       setNewProductName("");
-      toast.success(`${newProductName.trim()} added to catalog`);
+      toast.success(`${normalizedName} added to catalog`);
     }
   };
 
@@ -87,10 +95,19 @@ export default function ProductsClient({ initialProducts }) {
           return;
       }
       
+      const normalizedName = pluralize.plural(editProductName.trim());
+      
+      // Check for duplicate if name changed
+      const isDuplicate = products.some((p, i) => i !== editingIndex && p.productName.toLowerCase() === normalizedName.toLowerCase());
+      if (isDuplicate) {
+          toast.error(`"${normalizedName}" is already in your catalog.`);
+          return;
+      }
+
       const updated = [...products];
       updated[editingIndex] = {
           ...updated[editingIndex],
-          productName: editProductName.trim()
+          productName: normalizedName
       };
       
       const success = await syncChanges(updated);
@@ -110,12 +127,12 @@ export default function ProductsClient({ initialProducts }) {
       <div className="glass-panel p-6 sm:p-10 rounded-3xl animate-fadeIn">
         <div className="space-y-8">
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-theme-accent/5 rounded-xl text-theme-accent border border-theme-accent/10">
                 <Store size={24} />
               </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-theme-navy tracking-tight">Inventory List</h2>
                 <div className="flex items-center gap-2">
                    <p className="text-[11px] text-theme-slate/60 font-medium tracking-tight">
@@ -130,44 +147,76 @@ export default function ProductsClient({ initialProducts }) {
                 </div>
               </div>
             </div>
+
+            {/* Always visible toggle button in the header */}
+            <button
+              onClick={() => setIsAddSectionVisible(!isAddSectionVisible)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 ${
+                isAddSectionVisible 
+                  ? "bg-theme-navy text-white shadow-theme-navy/20 border border-theme-navy" 
+                  : "bg-white text-theme-navy border border-theme-slate/10 hover:border-theme-accent hover:text-theme-accent"
+              }`}
+            >
+              {isAddSectionVisible ? <X size={16} /> : <Plus size={16} />}
+              <span className="hidden sm:inline">{isAddSectionVisible ? "Close" : "Add Product"}</span>
+            </button>
           </div>
 
           <hr className="border-theme-slate/5" />
 
           {/* Add New Product Form */}
-          <div className="bg-theme-navy/5 p-5 rounded-2xl border border-theme-navy/5">
-            <h3 className="text-xs font-bold text-theme-slate uppercase tracking-wider mb-4">Add New Product</h3>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="e.g. Cricket Bat"
-                  value={newProductName}
-                  disabled={isSyncing}
-                  onChange={(e) => setNewProductName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddProduct()}
-                  className="w-full px-4 py-3 rounded-xl border border-white focus:border-theme-accent font-medium text-sm text-theme-navy outline-none transition-all shadow-sm bg-white/70 disabled:opacity-50"
-                />
-              </div>
-              <div className="flex items-center">
-                <button
-                  onClick={handleAddProduct}
-                  disabled={isSyncing}
-                  className="w-full md:w-auto px-8 py-3 bg-theme-accent text-white rounded-xl font-semibold text-xs hover:bg-theme-accent/90 transition-all shadow-md shadow-theme-accent/20 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                  ADD PRODUCT
-                </button>
-              </div>
-            </div>
-          </div>
+          <AnimatePresence>
+            {isAddSectionVisible && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="bg-theme-navy/5 p-5 rounded-2xl border border-theme-navy/5"
+              >
+                <h3 className="text-xs font-bold text-theme-slate uppercase tracking-wider mb-4">Add New Product</h3>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="e.g. Cricket Bat"
+                      value={newProductName}
+                      disabled={isSyncing}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddProduct()}
+                      className="w-full px-4 py-3 rounded-xl border border-white focus:border-theme-accent font-medium text-sm text-theme-navy outline-none transition-all shadow-sm bg-white/70 disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={handleAddProduct}
+                      disabled={isSyncing}
+                      className="w-full md:w-auto px-8 py-3 bg-theme-accent text-white rounded-xl font-semibold text-xs hover:bg-theme-accent/90 transition-all shadow-md shadow-theme-accent/20 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                      ADD PRODUCT
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Products List */}
           <div className="bg-white/40 backdrop-blur-sm rounded-3xl border border-theme-slate/10 overflow-hidden shadow-sm">
             {products.length > 0 ? (
               <div className="divide-y divide-theme-slate/5">
+                <AnimatePresence mode="popLayout">
                   {products.map((product, index) => (
-                    <div key={product._id || index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 hover:bg-white/60 transition-all group gap-4 sm:gap-0">
+                    <motion.div 
+                      key={product._id || index} 
+                      layout
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 hover:bg-white/60 transition-all group gap-4 sm:gap-0"
+                    >
                       
                       <div className="flex-1 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-theme-accent/5 flex items-center justify-center text-theme-accent shrink-0 border border-theme-accent/10 shadow-sm shadow-theme-accent/5">
@@ -230,8 +279,9 @@ export default function ProductsClient({ initialProducts }) {
                                 </>
                              )}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="w-full py-16 flex flex-col items-center justify-center text-center">
