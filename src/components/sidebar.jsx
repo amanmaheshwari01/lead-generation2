@@ -1,6 +1,8 @@
 import { LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar({ 
   title, 
@@ -9,6 +11,27 @@ export default function Sidebar({
   handleLogout,
 }) {
   const pathname = usePathname();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Show when scrolling up (towards top), hide when scrolling down (towards bottom)
+      // Also show if at the very top of the page
+      if (currentScrollY < lastScrollY || currentScrollY < 10) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   return (
     <>
@@ -56,46 +79,63 @@ export default function Sidebar({
       {/* =========================================
           2. MOBILE NAVIGATION (Minimalist Floating)
           ========================================= */}
-      <nav className="md:hidden fixed bottom-6 left-4 right-4 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 flex items-center justify-around px-2 h-16 animate-fadeIn transition-all">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          const isCreate = item.href.includes("new_lead");
-          const Icon = item.icon;
+      <AnimatePresence>
+        {isVisible && (
+          <motion.nav 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200/60 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] z-50 flex items-center justify-around px-6 h-16 border-b-0"
+          >
+            {menuItems
+              .filter(item => {
+                const href = item.href.toLowerCase();
+                return href.includes('dashboard') || href.includes('new_lead') || href.includes('profile');
+              })
+              .map((item) => {
+                const isActive = pathname === item.href;
+                const isCreate = item.href.includes("new_lead");
+                const Icon = item.icon;
 
-          if (isCreate) {
-             return (
-               <Link
-                 key={item.href}
-                 href={item.href}
-                 className="flex flex-col items-center justify-center relative -top-6 group"
-               >
-                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800 text-white shadow-2xl shadow-slate-800/20 border-4 border-white transition-all duration-300 active:scale-95">
-                   <Plus size={24} strokeWidth={2.5} />
-                 </div>
-               </Link>
-             )
-          }
+                if (isCreate) {
+                   return (
+                     <Link
+                       key={item.href}
+                       href={item.href}
+                       className="flex flex-col items-center justify-center relative -top-3 group"
+                     >
+                       <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-900/20 border-[3px] border-white transition-all duration-300 active:scale-95 group-hover:bg-slate-800">
+                         <Plus size={22} strokeWidth={2.5} />
+                       </div>
+                     </Link>
+                   )
+                }
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center justify-center p-2 relative group w-14 transition-all duration-300"
-            >
-              <Icon 
-                size={20} 
-                strokeWidth={isActive ? 2.5 : 2}
-                className={`transition-all duration-300 ${
-                  isActive ? "text-slate-800 scale-110" : "text-slate-400 group-hover:text-slate-600"
-                }`} 
-              />
-              {isActive && (
-                <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-slate-800 animate-pulse" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex flex-col items-center justify-center p-1.5 relative group transition-all duration-300"
+                  >
+                    <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? "bg-slate-100/80" : "group-hover:bg-slate-50"}`}>
+                      <Icon 
+                        size={20} 
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={`transition-all duration-300 ${
+                          isActive ? "text-slate-900" : "text-slate-400"
+                        }`} 
+                      />
+                    </div>
+                    {isActive && (
+                      <div className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-slate-900 shadow-sm" />
+                    )}
+                  </Link>
+                );
+              })}
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </>
   );
 }
