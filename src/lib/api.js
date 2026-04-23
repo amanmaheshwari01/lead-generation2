@@ -51,6 +51,9 @@ api.interceptors.response.use(
         // Simple cookie-only refresh via the existing proxy
         await api.post("/user/refresh", {}, { _retry: true });
         
+        // Add a tiny delay to ensure browser cookie synchronization
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {

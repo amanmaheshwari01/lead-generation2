@@ -175,36 +175,26 @@ export default function DataTable({
       </header>
 
       <AnimatePresence>
-        {(!isLoading && (data.length > 0 || searchQuery || activeFilterCount > 0) && (isFilterVisible || forceFilterVisible)) && (
+        {(!isLoading && (data.length > 0 || searchQuery || activeFilterCount > 0) && isFilterVisible && !forceFilterVisible) && (
           <motion.div 
-            initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-            animate={{ height: "auto", opacity: 1, marginBottom: 32 }}
-            exit={{ height: 0, opacity: 0, marginBottom: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className={cn(
-              "hidden md:block glass-panel overflow-hidden rounded-2xl shadow-sm border border-theme-accent/5",
-              forceFilterVisible ? 'p-3 sm:p-4' : 'p-4'
-            )}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="hidden md:block absolute right-4 top-[80px] w-auto max-w-4xl glass-panel p-3 rounded-2xl shadow-2xl shadow-theme-navy/10 border border-theme-slate/10 z-[60]"
           >
-            <div className={cn(
-              "flex items-stretch gap-3",
-              forceFilterVisible ? 'flex-row items-center' : 'flex-col md:flex-row md:items-center md:gap-4'
-            )}>
-              
+            <div className="flex items-center gap-3">
               {/* Global Search */}
-              <div className="relative flex-1 group">
-                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
-                  <Search size={forceFilterVisible ? 14 : 16} />
+              <div className="relative w-64 group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
+                  <Search size={14} />
                 </div>
                 <input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={cn(
-                    "w-full pr-4 rounded-xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-medium text-theme-navy outline-none transition-all shadow-sm",
-                    forceFilterVisible ? 'pl-8 py-2 text-[11px]' : 'pl-10 py-2.5 text-sm'
-                  )}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-bold text-xs text-theme-navy outline-none transition-all shadow-sm"
                 />
               </div>
 
@@ -218,13 +208,10 @@ export default function DataTable({
                     setSearchQuery("");
                     onClearFilters?.();
                   }}
-                  className={cn(
-                    "flex items-center gap-2 shrink-0 bg-theme-error/10 text-theme-error hover:bg-theme-error hover:text-white rounded-xl transition-all cursor-pointer font-bold",
-                    forceFilterVisible ? 'p-2 text-[10px]' : 'p-2.5 text-xs'
-                  )}
+                  className="flex items-center gap-2 shrink-0 bg-theme-error/10 text-theme-error hover:bg-theme-error hover:text-white p-2.5 rounded-xl transition-all cursor-pointer font-bold text-xs"
                   title="Clear all filters"
                 >
-                  <FilterX size={forceFilterVisible ? 14 : 16} />
+                  <FilterX size={16} />
                 </button>
               )}
             </div>

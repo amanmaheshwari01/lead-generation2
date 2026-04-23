@@ -63,12 +63,12 @@ export default function LeadsTable({ initialLeads = [] }) {
       key: "customerName",
       label: "Customer",
       render: (lead) => (
-        <div className="flex flex-col gap-1">
-          <span className="text-base font-bold text-theme-navy line-clamp-1">
+        <div className="flex flex-col gap-1 min-w-[160px]">
+          <span className="text-base font-bold text-theme-navy leading-tight">
             {lead.customerName?.trim() ? lead.customerName : "-"}
           </span>
           <div className="flex items-center gap-1.5 text-sm text-theme-slate/80 font-semibold">
-            <Phone size={14} className="text-theme-slate/50" />
+            <Phone size={13} className="text-theme-slate/50" />
             {lead.phoneNumber?.trim() ? lead.phoneNumber : "-"}
           </div>
         </div>
@@ -95,12 +95,10 @@ export default function LeadsTable({ initialLeads = [] }) {
     {
       key: "location",
       label: "Area / Location",
-      align: "center",
       render: (lead) => (
-        <div className="flex flex-col gap-0.5 justify-center">
+        <div className="flex flex-col gap-0.5">
           {lead.location?.trim() ? (
-            <div className="flex items-center gap-1.5 text-sm text-theme-navy font-bold justify-center">
-              <MapIcon size={14} className="text-theme-accent" />
+            <div className="flex items-center gap-1.5 text-sm text-theme-navy font-bold">
               {lead.location}
             </div>
           ) : (
@@ -153,14 +151,14 @@ export default function LeadsTable({ initialLeads = [] }) {
 
   const leadFilters = (
     <>
-      <div className="relative flex-1 group">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
-          <MapPin size={16} />
+      <div className="relative w-48 group">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
+          <MapPin size={14} />
         </div>
         <select
           value={selectedArea}
           onChange={(e) => setSelectedArea(e.target.value)}
-          className="w-full pl-10 pr-8 py-3.5 rounded-2xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-semibold text-sm text-theme-navy outline-none transition-all shadow-sm appearance-none cursor-pointer"
+          className="w-full pl-9 pr-6 py-2.5 rounded-xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-bold text-xs text-theme-navy outline-none transition-all shadow-sm appearance-none cursor-pointer"
         >
           {uniqueAreas.map(area => (
             <option key={area} value={area}>
@@ -170,14 +168,14 @@ export default function LeadsTable({ initialLeads = [] }) {
         </select>
       </div>
 
-      <div className="relative flex-1 group">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
-          <Wallet size={16} />
+      <div className="relative w-48 group">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-theme-slate/40 group-focus-within:text-theme-accent transition-colors">
+          <Wallet size={14} />
         </div>
         <select
           value={selectedBudget}
           onChange={(e) => setSelectedBudget(e.target.value)}
-          className="w-full pl-10 pr-8 py-3.5 rounded-2xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-semibold text-sm text-theme-navy outline-none transition-all shadow-sm appearance-none cursor-pointer"
+          className="w-full pl-9 pr-6 py-2.5 rounded-xl border border-theme-slate/10 focus:border-theme-accent bg-white/70 font-bold text-xs text-theme-navy outline-none transition-all shadow-sm appearance-none cursor-pointer"
         >
           <option value="All">Budget Range</option>
           <option value="under1k">{"< ₹1,000"}</option>
